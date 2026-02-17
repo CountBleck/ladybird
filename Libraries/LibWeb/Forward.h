@@ -357,6 +357,7 @@ class NumberStyleValue;
 class NumericType;
 class OKLabColorStyleValue;
 class OKLCHColorStyleValue;
+class OffsetRotateStyleValue;
 class OpenTypeTaggedStyleValue;
 class ParsedFontFace;
 class PendingSubstitutionStyleValue;

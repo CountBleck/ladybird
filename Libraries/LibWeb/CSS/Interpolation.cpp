@@ -29,6 +29,7 @@
 #include <LibWeb/CSS/StyleValues/KeywordStyleValue.h>
 #include <LibWeb/CSS/StyleValues/LengthStyleValue.h>
 #include <LibWeb/CSS/StyleValues/NumberStyleValue.h>
+#include <LibWeb/CSS/StyleValues/OffsetRotateStyleValue.h>
 #include <LibWeb/CSS/StyleValues/OpenTypeTaggedStyleValue.h>
 #include <LibWeb/CSS/StyleValues/PercentageStyleValue.h>
 #include <LibWeb/CSS/StyleValues/RadialSizeStyleValue.h>
@@ -1838,6 +1839,21 @@ static RefPtr<StyleValue const> interpolate_value_impl(DOM::Element& element, Ca
         auto interpolated_value = interpolate_raw(from.as_number().number(), to.as_number().number(), delta, calculation_context.accepted_type_ranges.get(ValueType::Number));
         return NumberStyleValue::create(interpolated_value);
     }
+    case StyleValue::Type::OffsetRotate: {
+        auto const& from_offset_rotate = from.as_offset_rotate();
+        auto const& to_offset_rotate = to.as_offset_rotate();
+
+        VERIFY(from_offset_rotate.rotation_mode() != OffsetRotateStyleValue::RotationMode::Reverse && to_offset_rotate.rotation_mode() != OffsetRotateStyleValue::RotationMode::Reverse);
+
+        if (from_offset_rotate.rotation_mode() != to_offset_rotate.rotation_mode())
+            return {};
+
+        auto interpolated_angle = interpolate_value(element, calculation_context, from_offset_rotate.angle(), to_offset_rotate.angle(), delta, allow_discrete);
+        if (!interpolated_angle)
+            return {};
+
+        return OffsetRotateStyleValue::create(interpolated_angle.release_nonnull(), from_offset_rotate.rotation_mode());
+    }
     case StyleValue::Type::OpenTypeTagged: {
         auto& from_open_type_tagged = from.as_open_type_tagged();
         auto& to_open_type_tagged = to.as_open_type_tagged();
@@ -2650,6 +2666,21 @@ RefPtr<StyleValue const> composite_value(PropertyID property_id, StyleValue cons
     case StyleValue::Type::Number: {
         auto result = composite_raw_values(underlying_value.as_number().number(), animated_value.as_number().number());
         return NumberStyleValue::create(result);
+    }
+    case StyleValue::Type::OffsetRotate: {
+        auto const& underlying_offset_rotate = underlying_value.as_offset_rotate();
+        auto const& animated_offset_rotate = underlying_value.as_offset_rotate();
+
+        VERIFY(underlying_offset_rotate.rotation_mode() != OffsetRotateStyleValue::RotationMode::Reverse && animated_offset_rotate.rotation_mode() != OffsetRotateStyleValue::RotationMode::Reverse);
+
+        if (underlying_offset_rotate.rotation_mode() != animated_offset_rotate.rotation_mode())
+            return {};
+
+        auto composited_angle = composite_value(property_id, underlying_offset_rotate.angle(), animated_offset_rotate.angle(), composite_operation);
+        if (!composited_angle)
+            return {};
+
+        return OffsetRotateStyleValue::create(composited_angle.release_nonnull(), underlying_offset_rotate.rotation_mode());
     }
     case StyleValue::Type::OpenTypeTagged: {
         auto& underlying_open_type_tagged = underlying_value.as_open_type_tagged();

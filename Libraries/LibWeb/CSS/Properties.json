@@ -3209,6 +3209,20 @@
       "position"
     ]
   },
+  "offset-rotate": {
+    "affects-layout": false,
+    "animation-type": "by-computed-value",
+    "inherited": false,
+    "initial": "auto",
+    "requires-computation": "cascaded-value",
+    "valid-identifiers": [
+      "auto",
+      "reverse"
+    ],
+    "valid-types": [
+      "angle"
+    ]
+  },
   "opacity": {
     "animation-type": "by-computed-value",
     "affects-layout": false,

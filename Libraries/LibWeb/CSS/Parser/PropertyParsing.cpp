@@ -47,6 +47,7 @@
 #include <LibWeb/CSS/StyleValues/KeywordStyleValue.h>
 #include <LibWeb/CSS/StyleValues/LengthStyleValue.h>
 #include <LibWeb/CSS/StyleValues/NumberStyleValue.h>
+#include <LibWeb/CSS/StyleValues/OffsetRotateStyleValue.h>
 #include <LibWeb/CSS/StyleValues/OpenTypeTaggedStyleValue.h>
 #include <LibWeb/CSS/StyleValues/PercentageStyleValue.h>
 #include <LibWeb/CSS/StyleValues/PositionStyleValue.h>
@@ -667,6 +668,8 @@ Parser::ParseErrorOr<NonnullRefPtr<StyleValue const>> Parser::parse_css_value(Pr
                 return parse_single_background_size_value(PropertyID::MaskSize, tokens);
             });
         });
+    case PropertyID::OffsetRotate:
+        return parse_all_as(tokens, [this](auto& tokens) { return parse_offset_rotate_value(tokens); });
     case PropertyID::OverflowClipMarginBlockEnd:
     case PropertyID::OverflowClipMarginBlockStart:
     case PropertyID::OverflowClipMarginBottom:
@@ -3408,6 +3411,65 @@ RefPtr<StyleValue const> Parser::parse_math_depth_value(TokenStream<ComponentVal
     }
 
     return nullptr;
+}
+
+// https://www.w3.org/TR/motion-1/#offset-rotate-property
+RefPtr<StyleValue const> Parser::parse_offset_rotate_value(TokenStream<ComponentValue>& tokens)
+{
+    // [ auto | reverse ] || <angle>
+
+    OffsetRotateStyleValue::RotationMode rotation_mode = OffsetRotateStyleValue::RotationMode::None;
+    RefPtr<StyleValue const> angle_value;
+
+    // We `break;` (not `return nullptr;`) on unexpected values, since this method is used when parsing the `offset`
+    // shorthand, and such values might belong to a different longhand
+    auto transaction = tokens.begin_transaction();
+    while (tokens.has_next_token()) {
+        auto inner_transaction = tokens.begin_transaction();
+
+        auto maybe_value = parse_css_value_for_property(PropertyID::OffsetRotate, tokens);
+        if (!maybe_value)
+            break;
+
+        if (maybe_value->is_angle() || maybe_value->is_calculated()) {
+            if (angle_value)
+                break;
+
+            angle_value = maybe_value.release_nonnull();
+            inner_transaction.commit();
+            continue;
+        }
+
+        if (maybe_value->is_keyword()) {
+            if (rotation_mode != OffsetRotateStyleValue::RotationMode::None)
+                break;
+
+            auto keyword = maybe_value->as_keyword().keyword();
+            if (keyword == Keyword::Auto)
+                rotation_mode = OffsetRotateStyleValue::RotationMode::Auto;
+            else if (keyword == Keyword::Reverse)
+                rotation_mode = OffsetRotateStyleValue::RotationMode::Reverse;
+            else
+                break;
+
+            inner_transaction.commit();
+            continue;
+        }
+
+        break;
+    }
+
+    // Normalize `auto` and `reverse` to `auto 0deg` and `reverse 0deg` to avoid null pointers/special-casing
+    if (!angle_value) {
+        // `offset-rotate: ;` is a syntax error
+        if (rotation_mode == OffsetRotateStyleValue::RotationMode::None)
+            return nullptr;
+
+        angle_value = AngleStyleValue::create(Angle::make_degrees(0));
+    }
+
+    transaction.commit();
+    return OffsetRotateStyleValue::create(angle_value.release_nonnull(), rotation_mode);
 }
 
 // https://drafts.csswg.org/css-overflow-4/#overflow-clip-margin
