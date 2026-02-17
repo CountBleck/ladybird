@@ -3168,6 +3168,47 @@
     ],
     "percentages-resolve-to": "length"
   },
+  "offset-anchor": {
+    "affects-layout": false,
+    "animation-type": "by-computed-value",
+    "inherited": false,
+    "initial": "auto",
+    "percentages-resolve-to": "length",
+    "requires-computation": "cascaded-value",
+    "valid-identifiers": [
+      "auto"
+    ],
+    "valid-types": [
+      "position"
+    ]
+  },
+  "offset-distance": {
+    "affects-layout": false,
+    "animation-type": "by-computed-value",
+    "inherited": false,
+    "initial": "0",
+    "percentages-resolve-to": "length",
+    "requires-computation": "cascaded-value",
+    "valid-types": [
+      "length [-∞,∞]",
+      "percentage [-∞,∞]"
+    ]
+  },
+  "offset-position": {
+    "affects-layout": false,
+    "animation-type": "by-computed-value",
+    "inherited": false,
+    "initial": "normal",
+    "percentages-resolve-to": "length",
+    "requires-computation": "cascaded-value",
+    "valid-identifiers": [
+      "normal",
+      "auto"
+    ],
+    "valid-types": [
+      "position"
+    ]
+  },
   "opacity": {
     "animation-type": "by-computed-value",
     "affects-layout": false,
