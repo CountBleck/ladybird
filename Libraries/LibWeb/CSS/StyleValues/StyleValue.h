@@ -83,6 +83,7 @@ namespace Web::CSS {
     __ENUMERATE_CSS_STYLE_VALUE_TYPE(RadialSize, radial_size, RadialSizeStyleValue)                                                            \
     __ENUMERATE_CSS_STYLE_VALUE_TYPE(RandomValueSharing, random_value_sharing, RandomValueSharingStyleValue)                                   \
     __ENUMERATE_CSS_STYLE_VALUE_TYPE(Ratio, ratio, RatioStyleValue)                                                                            \
+    __ENUMERATE_CSS_STYLE_VALUE_TYPE(RayFunction, ray_function, RayFunctionStyleValue)                                                         \
     __ENUMERATE_CSS_STYLE_VALUE_TYPE(Rect, rect, RectStyleValue)                                                                               \
     __ENUMERATE_CSS_STYLE_VALUE_TYPE(RepeatStyle, repeat_style, RepeatStyleStyleValue)                                                         \
     __ENUMERATE_CSS_STYLE_VALUE_TYPE(Resolution, resolution, ResolutionStyleValue)                                                             \

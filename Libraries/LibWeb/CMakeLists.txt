@@ -283,6 +283,7 @@ set(SOURCES
     CSS/StyleValues/RadialGradientStyleValue.cpp
     CSS/StyleValues/RadialSizeStyleValue.cpp
     CSS/StyleValues/RandomValueSharingStyleValue.cpp
+    CSS/StyleValues/RayFunctionStyleValue.cpp
     CSS/StyleValues/RectStyleValue.cpp
     CSS/StyleValues/RepeatStyleStyleValue.cpp
     CSS/StyleValues/ScrollbarColorStyleValue.cpp

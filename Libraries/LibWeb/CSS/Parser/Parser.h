@@ -429,6 +429,7 @@ private:
     RefPtr<StyleValue const> parse_counter_definitions_value(TokenStream<ComponentValue>&, AllowReversed, i32 default_value_if_not_reversed);
     RefPtr<StyleValue const> parse_rect_value(TokenStream<ComponentValue>&);
     RefPtr<StyleValue const> parse_ratio_value(TokenStream<ComponentValue>&);
+    RefPtr<StyleValue const> parse_ray_function_value(TokenStream<ComponentValue>&);
     RefPtr<StringStyleValue const> parse_string_value(TokenStream<ComponentValue>&);
     RefPtr<AbstractImageStyleValue const> parse_image_value(TokenStream<ComponentValue>&);
     RefPtr<StyleValue const> parse_paint_value(TokenStream<ComponentValue>&);

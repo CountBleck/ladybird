@@ -73,6 +73,8 @@ Optional<ValueType> value_type_from_string(StringView string)
         return ValueType::Position;
     if (string.equals_ignoring_ascii_case("ratio"sv))
         return ValueType::Ratio;
+    if (string.equals_ignoring_ascii_case("ray-function"sv))
+        return ValueType::RayFunction;
     if (string.equals_ignoring_ascii_case("rect"sv))
         return ValueType::Rect;
     if (string.equals_ignoring_ascii_case("resolution"sv))
@@ -169,6 +171,8 @@ StringView value_type_to_string(ValueType value_type)
         return "Position"sv;
     case Web::CSS::ValueType::Ratio:
         return "Ratio"sv;
+    case Web::CSS::ValueType::RayFunction:
+        return "RayFunction"sv;
     case Web::CSS::ValueType::Rect:
         return "Rect"sv;
     case Web::CSS::ValueType::Resolution:

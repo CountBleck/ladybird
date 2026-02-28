@@ -47,6 +47,7 @@ enum class ValueType : u8 {
     Percentage,
     Position,
     Ratio,
+    RayFunction,
     Rect,
     Resolution,
     ScrollFunction,

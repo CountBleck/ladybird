@@ -64,6 +64,7 @@
 #include <LibWeb/CSS/StyleValues/RadialSizeStyleValue.h>
 #include <LibWeb/CSS/StyleValues/RandomValueSharingStyleValue.h>
 #include <LibWeb/CSS/StyleValues/RatioStyleValue.h>
+#include <LibWeb/CSS/StyleValues/RayFunctionStyleValue.h>
 #include <LibWeb/CSS/StyleValues/RectStyleValue.h>
 #include <LibWeb/CSS/StyleValues/RepeatStyleStyleValue.h>
 #include <LibWeb/CSS/StyleValues/ResolutionStyleValue.h>

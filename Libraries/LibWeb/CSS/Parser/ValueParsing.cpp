@@ -70,6 +70,7 @@
 #include <LibWeb/CSS/StyleValues/RadialSizeStyleValue.h>
 #include <LibWeb/CSS/StyleValues/RandomValueSharingStyleValue.h>
 #include <LibWeb/CSS/StyleValues/RatioStyleValue.h>
+#include <LibWeb/CSS/StyleValues/RayFunctionStyleValue.h>
 #include <LibWeb/CSS/StyleValues/RectStyleValue.h>
 #include <LibWeb/CSS/StyleValues/RepeatStyleStyleValue.h>
 #include <LibWeb/CSS/StyleValues/ResolutionStyleValue.h>
@@ -2796,6 +2797,86 @@ RefPtr<StyleValue const> Parser::parse_ratio_value(TokenStream<ComponentValue>& 
     if (auto ratio = parse_ratio(tokens); ratio.has_value())
         return RatioStyleValue::create(ratio.release_value());
     return nullptr;
+}
+
+// https://www.w3.org/TR/motion-1/#funcdef-ray
+RefPtr<StyleValue const> Parser::parse_ray_function_value(TokenStream<ComponentValue>& tokens)
+{
+    // ray() = ray( <angle> && <ray-size>? && contain? && [at <position>]? )
+    auto transaction = tokens.begin_transaction();
+    auto const& function_token = tokens.consume_a_token();
+    if (!function_token.is_function("ray"sv))
+        return nullptr;
+
+    auto context_guard = push_temporary_value_parsing_context(FunctionContext { "ray"sv });
+
+    RefPtr<StyleValue const> angle;
+    Optional<RaySize> ray_size;
+    bool contain = false;
+    RefPtr<StyleValue const> position;
+
+    auto argument_tokens = TokenStream { function_token.function().value };
+
+    while (argument_tokens.has_next_token()) {
+        argument_tokens.discard_whitespace();
+
+        if (!argument_tokens.has_next_token())
+            break;
+
+        if (auto angle_value = parse_angle_value(argument_tokens)) {
+            if (angle)
+                return nullptr;
+
+            angle = angle_value.release_nonnull();
+            continue;
+        }
+
+        if (auto keyword_value = parse_keyword_value(argument_tokens)) {
+            auto keyword = keyword_value->as_keyword().to_keyword();
+
+            if (auto maybe_ray_size = keyword_to_ray_size(keyword); maybe_ray_size.has_value()) {
+                if (ray_size.has_value())
+                    return nullptr;
+
+                ray_size = maybe_ray_size;
+                continue;
+            }
+
+            if (keyword == Keyword::Contain) {
+                if (contain)
+                    return nullptr;
+
+                contain = true;
+                continue;
+            }
+
+            return nullptr;
+        }
+
+        if (argument_tokens.next_token().is_ident("at"sv)) {
+            if (position)
+                return nullptr;
+
+            argument_tokens.discard_a_token();
+            argument_tokens.discard_whitespace();
+
+            auto position_value = parse_position_value(argument_tokens);
+            if (!position_value)
+                return nullptr;
+
+            position = position_value.release_nonnull();
+            continue;
+        }
+
+        return nullptr;
+    }
+
+    if (!angle)
+        return nullptr;
+
+    transaction.commit();
+
+    return RayFunctionStyleValue::create(angle.release_nonnull(), ray_size.value_or(RaySize::ClosestSide), contain, move(position));
 }
 
 RefPtr<StringStyleValue const> Parser::parse_string_value(TokenStream<ComponentValue>& tokens)
@@ -5949,6 +6030,8 @@ RefPtr<StyleValue const> Parser::parse_value(ValueType value_type, TokenStream<C
         return parse_position_value(tokens);
     case ValueType::Ratio:
         return parse_ratio_value(tokens);
+    case ValueType::RayFunction:
+        return parse_ray_function_value(tokens);
     case ValueType::Rect:
         return parse_rect_value(tokens);
     case ValueType::Resolution:

@@ -34,6 +34,7 @@
 #include <LibWeb/CSS/StyleValues/PercentageStyleValue.h>
 #include <LibWeb/CSS/StyleValues/RadialSizeStyleValue.h>
 #include <LibWeb/CSS/StyleValues/RatioStyleValue.h>
+#include <LibWeb/CSS/StyleValues/RayFunctionStyleValue.h>
 #include <LibWeb/CSS/StyleValues/RectStyleValue.h>
 #include <LibWeb/CSS/StyleValues/ShadowStyleValue.h>
 #include <LibWeb/CSS/StyleValues/StyleValueList.h>
@@ -1944,6 +1945,33 @@ static RefPtr<StyleValue const> interpolate_value_impl(DOM::Element& element, Ca
         auto interpolated_value = interpolate_raw(from_number, to_number, delta, calculation_context.accepted_type_ranges.get(ValueType::Ratio));
         return RatioStyleValue::create(Ratio(pow(M_E, interpolated_value)));
     }
+    case StyleValue::Type::RayFunction: {
+        auto const& from_ray = from.as_ray_function();
+        auto const& to_ray = to.as_ray_function();
+
+        // https://wpt.live/css/motion/animation/offset-path-interpolation-005.html
+        // No interpolation between different sizes and/or different containment and/or coord-boxes.
+
+        if (from_ray.ray_size() != to_ray.ray_size() || from_ray.contain() != to_ray.contain())
+            return {};
+
+        auto interpolated_angle = interpolate_value(element, calculation_context, from_ray.angle(), to_ray.angle(), delta, allow_discrete);
+        if (!interpolated_angle)
+            return {};
+
+        RefPtr<StyleValue const> interpolated_position;
+
+        // FIXME: Revisit the relevant specs to see how interpolation occurs when one value specifies a position and
+        //        the other doesn't. offset-path-interpolation-005.html has a TODO about exactly this. For now, we
+        //        follow Gecko and WebKit's behavior in treating it as non-interpolatable.
+        if (from_ray.position().is_null() != to_ray.position().is_null())
+            return {};
+
+        if (from_ray.position())
+            interpolated_position = interpolate_value(element, calculation_context, *from_ray.position(), *to_ray.position(), delta, allow_discrete);
+
+        return RayFunctionStyleValue::create(interpolated_angle.release_nonnull(), from_ray.ray_size(), from_ray.contain(), move(interpolated_position));
+    }
     case StyleValue::Type::Rect: {
         auto from_rect = from.as_rect().rect();
         auto to_rect = to.as_rect().rect();
@@ -2747,6 +2775,35 @@ RefPtr<StyleValue const> composite_value(PropertyID property_id, StyleValue cons
         // https://drafts.csswg.org/css-values/#combine-ratio
         // Addition of <ratio>s is not possible.
         return {};
+    }
+    case StyleValue::Type::RayFunction: {
+        auto const& underlying_ray = underlying_value.as_ray_function();
+        auto const& animated_ray = animated_value.as_ray_function();
+
+        // https://wpt.live/css/motion/animation/offset-path-composition.html
+        // Ray paths without contain don't compose with underlying contain.
+        // Ray paths don't compose when underlying has different size.
+        if (underlying_ray.contain() != animated_ray.contain() || underlying_ray.ray_size() != animated_ray.ray_size())
+            return {};
+
+        auto composited_angle = composite_value(property_id, underlying_ray.angle(), animated_ray.angle(), composite_operation);
+        if (!composited_angle)
+            return {};
+
+        RefPtr<StyleValue const> composited_position;
+
+        // NB: If the underlying value has a position and the animated value doesn't, or vice versa, we can't composite
+        //     them. This matches the behavior of other browsers.
+        if (underlying_ray.position().is_null() != animated_ray.position().is_null())
+            return {};
+
+        if (underlying_ray.position()) {
+            composited_position = composite_value(property_id, *underlying_ray.position(), *animated_ray.position(), composite_operation);
+            if (!composited_position)
+                return {};
+        }
+
+        return RayFunctionStyleValue::create(composited_angle.release_nonnull(), underlying_ray.ray_size(), underlying_ray.contain(), move(composited_position));
     }
     case StyleValue::Type::ValueList: {
         auto& underlying_list = underlying_value.as_value_list();
