@@ -3194,6 +3194,22 @@
       "percentage [-∞,∞]"
     ]
   },
+  "offset-path": {
+    "affects-layout": false,
+    "animation-type": "by-computed-value",
+    "inherited": false,
+    "initial": "none",
+    "requires-computation": "cascaded-value",
+    "valid-identifiers": [
+      "none"
+    ],
+    "valid-types": [
+      "ray-function",
+      "url",
+      "basic-shape",
+      "coord-box"
+    ]
+  },
   "offset-position": {
     "affects-layout": false,
     "animation-type": "by-computed-value",

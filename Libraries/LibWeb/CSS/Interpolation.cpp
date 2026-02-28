@@ -29,6 +29,7 @@
 #include <LibWeb/CSS/StyleValues/KeywordStyleValue.h>
 #include <LibWeb/CSS/StyleValues/LengthStyleValue.h>
 #include <LibWeb/CSS/StyleValues/NumberStyleValue.h>
+#include <LibWeb/CSS/StyleValues/OffsetPathStyleValue.h>
 #include <LibWeb/CSS/StyleValues/OffsetRotateStyleValue.h>
 #include <LibWeb/CSS/StyleValues/OpenTypeTaggedStyleValue.h>
 #include <LibWeb/CSS/StyleValues/PercentageStyleValue.h>
@@ -1840,6 +1841,22 @@ static RefPtr<StyleValue const> interpolate_value_impl(DOM::Element& element, Ca
         auto interpolated_value = interpolate_raw(from.as_number().number(), to.as_number().number(), delta, calculation_context.accepted_type_ranges.get(ValueType::Number));
         return NumberStyleValue::create(interpolated_value);
     }
+    case StyleValue::Type::OffsetPath: {
+        auto const& from_offset_path = from.as_offset_path();
+        auto const& to_offset_path = to.as_offset_path();
+
+        // https://wpt.live/css/motion/animation/offset-path-interpolation-005.html
+        // No interpolation between different sizes and/or different containment and/or coord-boxes.
+        // NB: If either/both of the properties lack a path, don't interpolate.
+        if (from_offset_path.coord_box() != to_offset_path.coord_box() || !from_offset_path.offset_path() || !to_offset_path.offset_path())
+            return {};
+
+        auto interpolated_offset_path = interpolate_value(element, calculation_context, *from_offset_path.offset_path(), *to_offset_path.offset_path(), delta, allow_discrete);
+        if (!interpolated_offset_path)
+            return {};
+
+        return OffsetPathStyleValue::create(interpolated_offset_path.release_nonnull(), from_offset_path.coord_box());
+    }
     case StyleValue::Type::OffsetRotate: {
         auto const& from_offset_rotate = from.as_offset_rotate();
         auto const& to_offset_rotate = to.as_offset_rotate();
@@ -2694,6 +2711,20 @@ RefPtr<StyleValue const> composite_value(PropertyID property_id, StyleValue cons
     case StyleValue::Type::Number: {
         auto result = composite_raw_values(underlying_value.as_number().number(), animated_value.as_number().number());
         return NumberStyleValue::create(result);
+    }
+    case StyleValue::Type::OffsetPath: {
+        auto const& underlying_offset_path = underlying_value.as_offset_path();
+        auto const& animated_offset_path = animated_value.as_offset_path();
+
+        // NB: Other browsers don't composite offset-paths that have differing <coord-box>s, or if one/both of them lack a path.
+        if (underlying_offset_path.coord_box() != animated_offset_path.coord_box() || !underlying_offset_path.offset_path() || !animated_offset_path.offset_path())
+            return {};
+
+        auto composited_offset_path = composite_value(property_id, *underlying_offset_path.offset_path(), *animated_offset_path.offset_path(), composite_operation);
+        if (!composited_offset_path)
+            return {};
+
+        return OffsetPathStyleValue::create(composited_offset_path.release_nonnull(), underlying_offset_path.coord_box());
     }
     case StyleValue::Type::OffsetRotate: {
         auto const& underlying_offset_rotate = underlying_value.as_offset_rotate();

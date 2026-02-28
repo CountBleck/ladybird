@@ -47,6 +47,7 @@
 #include <LibWeb/CSS/StyleValues/KeywordStyleValue.h>
 #include <LibWeb/CSS/StyleValues/LengthStyleValue.h>
 #include <LibWeb/CSS/StyleValues/NumberStyleValue.h>
+#include <LibWeb/CSS/StyleValues/OffsetPathStyleValue.h>
 #include <LibWeb/CSS/StyleValues/OffsetRotateStyleValue.h>
 #include <LibWeb/CSS/StyleValues/OpenTypeTaggedStyleValue.h>
 #include <LibWeb/CSS/StyleValues/PercentageStyleValue.h>
@@ -670,6 +671,8 @@ Parser::ParseErrorOr<NonnullRefPtr<StyleValue const>> Parser::parse_css_value(Pr
                 return parse_single_background_size_value(PropertyID::MaskSize, tokens);
             });
         });
+    case PropertyID::OffsetPath:
+        return parse_all_as(tokens, [this](auto& tokens) { return parse_offset_path_value(tokens); });
     case PropertyID::OffsetRotate:
         return parse_all_as(tokens, [this](auto& tokens) { return parse_offset_rotate_value(tokens); });
     case PropertyID::OverflowClipMarginBlockEnd:
@@ -3413,6 +3416,57 @@ RefPtr<StyleValue const> Parser::parse_math_depth_value(TokenStream<ComponentVal
     }
 
     return nullptr;
+}
+
+// https://www.w3.org/TR/motion-1/#offset-path-property
+RefPtr<StyleValue const> Parser::parse_offset_path_value(TokenStream<ComponentValue>& tokens)
+{
+    // none | <offset-path> || <coord-box>
+
+    if (auto none = parse_all_as_single_keyword_value(tokens, Keyword::None))
+        return none;
+
+    RefPtr<StyleValue const> offset_path_value;
+    Optional<CoordBox> coord_box;
+
+    // We `break;` (not `return nullptr;`) on unexpected values, since this method is used when parsing the `offset`
+    // shorthand, and such values might belong to a different longhand
+    auto transaction = tokens.begin_transaction();
+    while (tokens.has_next_token()) {
+        auto inner_transaction = tokens.begin_transaction();
+
+        auto maybe_value = parse_css_value_for_property(PropertyID::OffsetPath, tokens);
+        if (!maybe_value)
+            break;
+
+        if (maybe_value->is_keyword()) {
+            auto maybe_coord_box = keyword_to_coord_box(maybe_value->to_keyword());
+
+            if (!maybe_coord_box.has_value() || coord_box.has_value())
+                break;
+
+            coord_box = maybe_coord_box;
+            inner_transaction.commit();
+            continue;
+        }
+
+        if (maybe_value->is_ray_function() || maybe_value->is_url() || maybe_value->is_basic_shape()) {
+            if (offset_path_value)
+                break;
+
+            offset_path_value = maybe_value.release_nonnull();
+            inner_transaction.commit();
+            continue;
+        }
+
+        break;
+    }
+
+    if (!offset_path_value && !coord_box.has_value())
+        return nullptr;
+
+    transaction.commit();
+    return OffsetPathStyleValue::create(move(offset_path_value), coord_box.value_or(CoordBox::BorderBox));
 }
 
 // https://www.w3.org/TR/motion-1/#offset-rotate-property
