@@ -892,6 +892,39 @@ void ShorthandStyleValue::serialize(StringBuilder& builder, SerializationMode mo
         }
         return;
     }
+    case PropertyID::Offset: {
+        auto offset_position = longhand(PropertyID::OffsetPosition);
+        auto offset_path = longhand(PropertyID::OffsetPath);
+        auto offset_distance = longhand(PropertyID::OffsetDistance);
+        auto offset_rotate = longhand(PropertyID::OffsetRotate);
+        auto offset_anchor = longhand(PropertyID::OffsetAnchor);
+
+        if (offset_position) {
+            offset_position->serialize(builder, mode);
+            if (offset_path)
+                builder.append(' ');
+        }
+
+        if (offset_path)
+            offset_path->serialize(builder, mode);
+
+        if (offset_distance) {
+            builder.append(' ');
+            offset_distance->serialize(builder, mode);
+        }
+
+        if (offset_rotate) {
+            builder.append(' ');
+            offset_rotate->serialize(builder, mode);
+        }
+
+        if (offset_anchor) {
+            builder.append(" / "sv);
+            offset_anchor->serialize(builder, mode);
+        }
+
+        return;
+    }
     case PropertyID::PlaceContent:
     case PropertyID::PlaceItems:
     case PropertyID::PlaceSelf:

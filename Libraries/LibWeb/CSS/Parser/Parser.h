@@ -511,6 +511,7 @@ private:
     RefPtr<StyleValue const> parse_list_style_value(TokenStream<ComponentValue>&);
     RefPtr<StyleValue const> parse_mask_value(TokenStream<ComponentValue>&);
     RefPtr<StyleValue const> parse_math_depth_value(TokenStream<ComponentValue>&);
+    RefPtr<StyleValue const> parse_offset_value(TokenStream<ComponentValue>&);
     RefPtr<StyleValue const> parse_offset_path_value(TokenStream<ComponentValue>&);
     RefPtr<StyleValue const> parse_offset_rotate_value(TokenStream<ComponentValue>&);
     RefPtr<StyleValue const> parse_overflow_clip_margin_value(TokenStream<ComponentValue>&);

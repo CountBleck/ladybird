@@ -671,6 +671,8 @@ Parser::ParseErrorOr<NonnullRefPtr<StyleValue const>> Parser::parse_css_value(Pr
                 return parse_single_background_size_value(PropertyID::MaskSize, tokens);
             });
         });
+    case PropertyID::Offset:
+        return parse_all_as(tokens, [this](auto& tokens) { return parse_offset_value(tokens); });
     case PropertyID::OffsetPath:
         return parse_all_as(tokens, [this](auto& tokens) { return parse_offset_path_value(tokens); });
     case PropertyID::OffsetRotate:
@@ -3416,6 +3418,77 @@ RefPtr<StyleValue const> Parser::parse_math_depth_value(TokenStream<ComponentVal
     }
 
     return nullptr;
+}
+
+// https://www.w3.org/TR/motion-1/#offset-shorthand
+RefPtr<StyleValue const> Parser::parse_offset_value(TokenStream<ComponentValue>& tokens)
+{
+    // [ <'offset-position'>? [ <'offset-path'> [ <'offset-distance'> || <'offset-rotate'> ]? ]? ]! [ / <'offset-anchor'> ]?
+
+    auto transaction = tokens.begin_transaction();
+
+    auto position_value = parse_css_value_for_property(PropertyID::OffsetPosition, tokens);
+    auto path_value = parse_offset_path_value(tokens);
+
+    RefPtr<StyleValue const> distance_value;
+    RefPtr<StyleValue const> rotate_value;
+
+    if (path_value) {
+        // Handles `<'offset-distance'>` and `<'offset-distance'> <'offset-rotate'>`
+        distance_value = parse_css_value_for_property(PropertyID::OffsetDistance, tokens);
+        rotate_value = parse_offset_rotate_value(tokens);
+
+        // Handles `<'offset-rotate'> <'offset-distance'>`
+        if (rotate_value && !distance_value)
+            distance_value = parse_css_value_for_property(PropertyID::OffsetDistance, tokens);
+    }
+
+    if (!path_value && !position_value)
+        return nullptr;
+
+    RefPtr<StyleValue const> anchor_value;
+
+    tokens.discard_whitespace();
+    if (tokens.next_token().is_delim('/')) {
+        tokens.discard_a_token();
+        tokens.discard_whitespace();
+
+        anchor_value = parse_css_value_for_property(PropertyID::OffsetAnchor, tokens);
+        if (!anchor_value)
+            return nullptr;
+    }
+
+    if (tokens.has_next_token())
+        return nullptr;
+
+    transaction.commit();
+
+    if (!position_value)
+        position_value = property_initial_value(PropertyID::OffsetPosition);
+    if (!path_value)
+        path_value = property_initial_value(PropertyID::OffsetPath);
+    if (!distance_value)
+        distance_value = property_initial_value(PropertyID::OffsetDistance);
+    if (!rotate_value)
+        rotate_value = property_initial_value(PropertyID::OffsetRotate);
+    if (!anchor_value)
+        anchor_value = property_initial_value(PropertyID::OffsetAnchor);
+
+    return ShorthandStyleValue::create(PropertyID::Offset,
+        {
+            PropertyID::OffsetPosition,
+            PropertyID::OffsetPath,
+            PropertyID::OffsetDistance,
+            PropertyID::OffsetRotate,
+            PropertyID::OffsetAnchor,
+        },
+        {
+            position_value.release_nonnull(),
+            path_value.release_nonnull(),
+            distance_value.release_nonnull(),
+            rotate_value.release_nonnull(),
+            anchor_value.release_nonnull(),
+        });
 }
 
 // https://www.w3.org/TR/motion-1/#offset-path-property
